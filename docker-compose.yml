@@ -1,0 +1,35 @@
+version: '2'
+services:
+  etcd0:
+    image: quay.io/coreos/etcd:v3.0.12
+    container_name: myetcd3
+    volumes:
+      - /usr/share/ca-certificates/:/etc/ssl/certs
+    ports:
+      - 4001:4001
+      - 2380:2380
+      - 2379:2379
+    command:
+      etcd
+      -name etcd0
+      -initial-cluster-token etcd-cluster-1
+      -initial-cluster "etcd0=http://etcd0:2380"
+      -initial-cluster-state new
+      -initial-advertise-peer-urls http://etcd0:2380
+      -listen-client-urls "http://0.0.0.0:2379,http://0.0.0.0:4001"
+      -listen-peer-urls http://0.0.0.0:2380
+      -advertise-client-urls http://etcd0:2379,http://etcd0:4001
+  vault:
+    image: vault
+    container_name: myvault
+    environment:
+      - VAULT_ADDR=http://127.0.0.1:8200
+    links:
+      - etcd0
+    ports:
+      - "127.0.0.1:8200:8200"
+    volumes:
+      - ./config:/vault/config:rw
+    cap_add:
+      - IPC_LOCK
+    entrypoint: vault server -config=/vault/config/
